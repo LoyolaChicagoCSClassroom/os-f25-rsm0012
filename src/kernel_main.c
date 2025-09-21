@@ -1,25 +1,40 @@
+#include "../rprintf.h"  // Make sure this is included
 
-#include <stdint.h>
-
-#define MULTIBOOT2_HEADER_MAGIC         0xe85250d6
-
-const unsigned int multiboot_header[]  __attribute__((section(".multiboot"))) = {MULTIBOOT2_HEADER_MAGIC, 0, 16, -(16+MULTIBOOT2_HEADER_MAGIC), 0, 12};
-
-uint8_t inb (uint16_t _port) {
-    uint8_t rv;
-    __asm__ __volatile__ ("inb %1, %0" : "=a" (rv) : "dN" (_port));
-    return rv;
+int putc(int c) {
+    // Video memory starts at 0xB8000
+    volatile unsigned short* vram = (unsigned short*)0xB8000;
+    static int cursor_pos = 0;
+    
+    if (c == '\n') {
+        // Move to next line (80 characters per line)
+        cursor_pos = (cursor_pos + 80) / 80 * 80;
+    } else {
+        // Write character with gray color (0x07) on black background
+        vram[cursor_pos++] = (0x07 << 8) | c;
+    }
+    
+    // Scroll if reached bottom of screen
+    if (cursor_pos >= 80 * 25) {
+        // Scroll entire screen up by one line
+        for (int i = 0; i < 80 * 24; i++) {
+            vram[i] = vram[i + 80];
+        }
+        // Clear the bottom line
+        for (int i = 80 * 24; i < 80 * 25; i++) {
+            vram[i] = (0x07 << 8) | ' ';
+        }
+        // Move cursor to start of last line
+        cursor_pos = 80 * 24;
+    }
+    
+    return c;  // Return the character written
 }
 
 void main() {
-    unsigned short *vram = (unsigned short*)0xb8000; // Base address of video mem
-    const unsigned char color = 7; // gray text on black background
-
-    while(1) {
-        uint8_t status = inb(0x64);
-
-        if(status & 1) {
-            uint8_t scancode = inb(0x60);
-        }
+    // Test scrolling by printing many lines
+    for (int i = 0; i < 30; i++) {
+        esp_printf(putc, "Line %d: This is test line number %d\n", i, i);
     }
+    
+    while(1); // Hang so you can see the output
 }
