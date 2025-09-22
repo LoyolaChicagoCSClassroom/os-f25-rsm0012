@@ -1,8 +1,7 @@
 /* The bootloader will look at this image and start execution at the symbol
    designated as the entry point. */
-ENTRY(main)
+ENTRY(_start)
 OUTPUT_FORMAT(elf32-i386)
-
 /* Tell where the various sections of the object files will be put in the final
    kernel image. */
 SECTIONS
@@ -16,20 +15,18 @@ SECTIONS
     . = ALIGN(8);
     .text : { *(.text) }
     .rodata : { *(.rodata) }
-
     . = ALIGN(4096);
-    _start_data = .;
+    start_data = .;
     .data : { *(.data) }
-    _end_data = .;
+    end_data = .;
     . = ALIGN(4096);
-    _start_bss = . ;
+    start_bss = . ;
     .bss  : { *(.bss)  }
-    _end_bss = ADDR(.bss) + SIZEOF(.bss) ;
+    end_bss = ADDR(.bss) + SIZEOF(.bss) ;
     
     . = ALIGN(4096);
-
-    _start_stack = .;
+    start_stack = .;
     .stack : { *(.stack) }
-    _end_stack = .;
-    _end_kernel = .;
+    end_stack = .;
+    end_kernel = .;
 }
