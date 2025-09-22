@@ -1,12 +1,7 @@
 // Multiboot header using inline assembly
-asm(
-    ".section .multiboot\n"
-    ".align 4\n"
-    ".long 0x1BADB002\n"          
-    ".long 0x00000000\n"          // flags  
-    ".long -(0x1BADB002 + 0x00000000)\n"  // checksum
-    ".previous\n"
-);
+#define MULTIBOOT2_HEADER_MAGIC         0xe85250d6
+
+const unsigned int multiboot_header[]  __attribute__((section(".multiboot"))) = {MULTIBOOT2_HEADER_MAGIC, 0, 16, -(16+MULTIBOOT2_HEADER_MAGIC), 0, 12};
 
 #include "../rprintf.h"  // Make sure this is included
 
@@ -71,5 +66,7 @@ void main() {
     esp_printf(putc_wrapper, "Notice how the screen scrolled when we went past line 24!\r\n");
     esp_printf(putc_wrapper, "The terminal driver is working correctly!\r\n");
     
-    while(1); // Hang so you can see the output
+    while(1){ // Hang so you can see the output
+		asm("hlt");
+	}
 }
