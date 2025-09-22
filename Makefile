@@ -66,3 +66,8 @@ debug:
 
 clean:
 	rm -f grub.img kernel rootfs.img obj/*
+
+run-direct:
+	qemu-system-i386 -kernel kernel
+
+# Note: Use 'make run-direct' if 'make run' fails due to GRUB multiboot issues
