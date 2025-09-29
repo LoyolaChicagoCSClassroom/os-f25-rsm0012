@@ -1,5 +1,4 @@
 UNAME_M := $(shell uname -m)
-
 ifeq ($(UNAME_M),aarch64)
 PREFIX:=i386-unknown-elf-
 BOOTIMG:=/usr/local/grub/lib/grub/i386-pc/boot.img
@@ -9,7 +8,6 @@ PREFIX:=
 BOOTIMG:=/usr/lib/grub/i386-pc/boot.img
 GRUBLOC :=
 endif
-
 CC := $(PREFIX)gcc
 LD := $(PREFIX)ld
 OBJDUMP := $(PREFIX)objdump
@@ -17,25 +15,26 @@ OBJCOPY := $(PREFIX)objcopy
 SIZE := $(PREFIX)size
 CONFIGS := -DCONFIG_HEAP_SIZE=4096
 CFLAGS := -ffreestanding -mgeneral-regs-only -mno-mmx -m32 -march=i386 -fno-pie -fno-stack-protector -g3 -Wall 
-
 ODIR = obj
 SDIR = src
-
 OBJS = \
 	kernel_main.o \
-	rprintf.o
-
+	rprintf.o \
+	interrupt.o
 # Make sure to keep a blank line here after OBJS list
 
 OBJ = $(patsubst %,$(ODIR)/%,$(OBJS))
 
 $(ODIR)/%.o: $(SDIR)/%.c
 	$(CC) $(CFLAGS) -c -g -o $@ $^
-
+	
 $(ODIR)/%.o: $(SDIR)/%.s
 	$(CC) $(CFLAGS) -c -g -o $@ $^
 
 $(ODIR)/rprintf.o: rprintf.c
+	$(CC) $(CFLAGS) -c -g -o $@ $^
+
+$(ODIR)/interrupt.o: interrupt.c
 	$(CC) $(CFLAGS) -c -g -o $@ $^
 
 all: bin rootfs.img

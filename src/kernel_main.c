@@ -1,9 +1,9 @@
 // Multiboot header using inline assembly
 #define MULTIBOOT2_HEADER_MAGIC         0xe85250d6
+const unsigned int multiboot_header[] __attribute__((section(".multiboot"))) = {MULTIBOOT2_HEADER_MAGIC, 0, 16, -(16+MULTIBOOT2_HEADER_MAGIC), 0, 12};
 
-const unsigned int multiboot_header[]  __attribute__((section(".multiboot"))) = {MULTIBOOT2_HEADER_MAGIC, 0, 16, -(16+MULTIBOOT2_HEADER_MAGIC), 0, 12};
-
-#include "../rprintf.h"  // Make sure this is included
+#include "../rprintf.h"
+#include "../interrupt.h"  // Add this for interrupt functions
 
 int putc(int data) {
     // Video memory starts at 0xB8000
@@ -42,7 +42,7 @@ int putc(int data) {
 // Wrapper function for esp_printf compatibility
 int putc_wrapper(int data) {
     putc(data);
-    return data;  // Return the character for esp_printf
+    return data;
 }
 
 void main() {
@@ -52,21 +52,19 @@ void main() {
         vram[i] = (0x07 << 8) | ' ';
     }
     
-    // Print current execution level as requested
-    esp_printf(putc_wrapper, "Current execution level: Kernel mode\r\n");
-    esp_printf(putc_wrapper, "Hello World, this is my CS 310 terminal working!\r\n");
+    // Initialize interrupt system for keyboard input
+    remap_pic();  // Set up the programmable interrupt controller
+    load_gdt();   // Load the global descriptor table
+    init_idt();   // Initialize the interrupt descriptor table
+    asm("sti");   // Enable interrupts
+    
+    // Print welcome message
+    esp_printf(putc_wrapper, "CS310 Homework 2: Keyboard Interrupts\r\n");
+    esp_printf(putc_wrapper, "Interrupts enabled. Type to test keyboard input:\r\n");
     esp_printf(putc_wrapper, "\r\n");
     
-    // Demonstrate scrolling by filling the screen and going beyond line 24
-    for (int i = 0; i < 30; i++) {
-        esp_printf(putc_wrapper, "Line %d: Hello World, this is my CS 310 terminal working!\r\n", i);
+    // Infinite loop - wait for keyboard interrupts
+    while(1) {
+        asm("hlt");  // Halt until next interrupt
     }
-    
-    esp_printf(putc_wrapper, "\r\n");
-    esp_printf(putc_wrapper, "Notice how the screen scrolled when we went past line 24!\r\n");
-    esp_printf(putc_wrapper, "The terminal driver is working correctly!\r\n");
-    
-    while(1){ // Hang so you can see the output
-		asm("hlt");
-	}
 }
