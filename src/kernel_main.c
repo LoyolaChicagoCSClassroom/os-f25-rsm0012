@@ -3,7 +3,8 @@
 const unsigned int multiboot_header[] __attribute__((section(".multiboot"))) = {MULTIBOOT2_HEADER_MAGIC, 0, 16, -(16+MULTIBOOT2_HEADER_MAGIC), 0, 12};
 
 #include "../rprintf.h"
-#include "../interrupt.h"  // Add this for interrupt functions
+#include "../interrupt.h"
+#include "../page.h"
 
 int putc(int data) {
     // Video memory starts at 0xB8000
@@ -59,9 +60,22 @@ void main() {
     asm("sti");   // Enable interrupts
     
     // Print welcome message
-    esp_printf(putc_wrapper, "CS310 Homework 2: Keyboard Interrupts\r\n");
+    esp_printf(putc_wrapper, "CS310 Homework 3: Page Frame Allocator\r\n");
     esp_printf(putc_wrapper, "Interrupts enabled. Type to test keyboard input:\r\n");
     esp_printf(putc_wrapper, "\r\n");
+    
+ 
+	esp_printf(putc_wrapper, "About to call init_pfa_list\r\n");
+	init_pfa_list();
+	esp_printf(putc_wrapper, "Page frame allocator initialized\r\n");
+    
+    struct ppage *pages = allocate_physical_pages(10);
+if (pages != NULL) {
+    esp_printf(putc_wrapper, "Allocated 10 pages successfully\r\n");
+    free_physical_pages_list(pages);
+    esp_printf(putc_wrapper, "Freed 10 pages\r\n");
+}
+esp_printf(putc_wrapper, "\r\n");
     
     // Infinite loop - wait for keyboard interrupts
     while(1) {
