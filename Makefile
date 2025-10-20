@@ -20,7 +20,8 @@ SDIR = src
 OBJS = \
 	kernel_main.o \
 	rprintf.o \
-	interrupt.o
+	interrupt.o \
+	page.o
 # Make sure to keep a blank line here after OBJS list
 
 OBJ = $(patsubst %,$(ODIR)/%,$(OBJS))
@@ -35,6 +36,9 @@ $(ODIR)/rprintf.o: rprintf.c
 	$(CC) $(CFLAGS) -c -g -o $@ $^
 
 $(ODIR)/interrupt.o: interrupt.c
+	$(CC) $(CFLAGS) -c -g -o $@ $^
+	
+$(ODIR)/page.o: page.c
 	$(CC) $(CFLAGS) -c -g -o $@ $^
 
 all: bin rootfs.img
