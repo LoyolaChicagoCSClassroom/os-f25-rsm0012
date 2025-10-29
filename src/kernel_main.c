@@ -6,6 +6,12 @@ const unsigned int multiboot_header[] __attribute__((section(".multiboot"))) = {
 #include "../interrupt.h"
 #include "../page.h"
 
+// External symbols from linker script
+extern int _end_kernel;
+
+// External page directory from page.c
+extern struct page_directory_entry pd[1024];
+
 int putc(int data) {
     // Video memory starts at 0xB8000
     volatile unsigned short* vram = (unsigned short*)0xB8000;
@@ -60,14 +66,52 @@ void main() {
     asm("sti");   // Enable interrupts
     
     // Print welcome message
-    esp_printf(putc_wrapper, "CS310 Homework 3: Page Frame Allocator\r\n");
+    esp_printf(putc_wrapper, "CS310 Homework 4: Virtual Memory\r\n");
     esp_printf(putc_wrapper, "Interrupts enabled. Type to test keyboard input:\r\n");
     esp_printf(putc_wrapper, "\r\n");
     
- 
-	esp_printf(putc_wrapper, "About to call init_pfa_list\r\n");
+
 	init_pfa_list();
 	esp_printf(putc_wrapper, "Page frame allocator initialized\r\n");
+    
+    // Identity map the kernel
+// Map from 0x100000 (1MB) to end of kernel
+for (uint32_t addr = 0x100000; addr < (uint32_t)&_end_kernel; addr += 0x1000) {
+    struct ppage tmp;
+    tmp.next = NULL;
+    tmp.prev = NULL;
+    tmp.physical_addr = (void *)addr;
+    map_pages((void *)addr, &tmp, pd);
+}
+
+// Identity map the video buffer at 0xB8000
+	struct ppage video_page;
+	video_page.next = NULL;
+	video_page.prev = NULL;
+	video_page.physical_addr = (void *)0xB8000;
+	map_pages((void *)0xB8000, &video_page, pd);
+
+// Identity map the stack
+	uint32_t esp;
+	asm("mov %%esp,%0" : "=r" (esp));
+	uint32_t stack_start = esp & 0xFFFFF000;  // Round down to page boundary
+	for (uint32_t addr = stack_start; addr < stack_start + 0x10000; addr += 0x1000) {
+		struct ppage tmp;
+		tmp.next = NULL;
+		tmp.prev = NULL;
+		tmp.physical_addr = (void *)addr;
+		map_pages((void *)addr, &tmp, pd);
+}
+
+esp_printf(putc_wrapper, "Identity mapping complete\r\n");
+
+// Load page directory and enable paging
+asm("mov %0,%%cr3" : : "r"(pd));
+asm("mov %%cr0, %%eax\n"
+    "or $0x80000001,%%eax\n"
+    "mov %%eax,%%cr0" : : : "eax");
+
+esp_printf(putc_wrapper, "Paging enabled!\r\n");
     
     struct ppage *pages = allocate_physical_pages(10);
 if (pages != NULL) {
